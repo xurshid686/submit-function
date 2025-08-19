@@ -1,0 +1,52 @@
+export default async function handler(req, res) {
+  if (req.method !== 'POST') return res.status(405).send('Only POST allowed');
+
+  // Simple shared-secret so only your test can post
+  if (req.headers['x-shared-secret'] !== process.env.SHARED_SECRET) {
+    return res.status(401).send('Unauthorized');
+  }
+
+  try {
+    const {
+      testId, studentName, studentId, score, maxScore,
+      startedAt, finishedAt, durationSec, detailsUrl, className
+    } = req.body || {};
+
+    const escape = (s = '') =>
+      String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+    const pct = (score != null && maxScore) ? Math.round((score / maxScore) * 100) : null;
+
+    const lines = [
+      '📝 <b>Test submitted</b>',
+      `<b>Student:</b> ${escape(studentName || 'Unknown')}`,
+      className ? `<b>Class:</b> ${escape(className)}` : null,
+      `<b>Test:</b> ${escape(testId || 'Unknown')}`,
+      (score != null && maxScore != null)
+        ? `<b>Score:</b> ${score}/${maxScore}${pct != null ? ` (${pct}%)` : ''}`
+        : null,
+      durationSec != null ? `<b>Duration:</b> ${Math.round(durationSec/60)} min` : null,
+      startedAt ? `<b>Started:</b> ${escape(startedAt)}` : null,
+      finishedAt ? `<b>Finished:</b> ${escape(finishedAt)}` : null,
+      detailsUrl ? `<b>Details:</b> ${escape(detailsUrl)}` : null
+    ].filter(Boolean).join('\n');
+
+    const tgResp = await fetch(`https://api.telegram.org/bot${process.env.8416223767:AAHeXniG2gR4hfYi_3UfKVCubPORF2KSpAM}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: process.env.7130173012,
+        text: lines,
+        parse_mode: 'HTML',
+        disable_web_page_preview: true
+      })
+    });
+
+    const tgData = await tgResp.json();
+    if (!tgData.ok) return res.status(502).json({ ok:false, error:'Telegram failed', tgData });
+
+    res.json({ ok:true });
+  } catch (e) {
+    res.status(500).json({ ok:false, error:'Server error' });
+  }
+}
