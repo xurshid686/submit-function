@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>CDI Test Demo</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 720px; margin: 24px auto; }
+    label { display:block; margin: 8px 0 4px; }
+    input, button { padding: 8px; }
+    .box { border:1px solid #ddd; padding:16px; border-radius:8px; }
+  </style>
+</head>
+<body>
+  <h1>CDI Test Demo</h1>
+  <div class="box">
+    <label>Student name</label>
+    <input id="studentName" placeholder="Your name"/>
+    <label>Score (0-40)</label>
+    <input id="score" type="number" min="0" max="40" value="35"/>
+    <button id="finishBtn">Finish & Report</button>
+  </div>
+
+  <script>
+    const startedAt = Date.now();
+
+    async function reportToTeacher(summary) {
+      try {
+        const resp = await fetch('REPLACE_WITH_YOUR_DEPLOY_URL/api/report', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Shared-Secret': 'REPLACE_WITH_SHARED_SECRET'
+          },
+          body: JSON.stringify(summary)
+        });
+        return await resp.json();
+      } catch (e) {
+        console.warn('Report failed:', e);
+        return { ok: false };
+      }
+    }
+
+    document.getElementById('finishBtn').addEventListener('click', async () => {
+      const studentName = document.getElementById('studentName').value || 'Unknown';
+      const score = Number(document.getElementById('score').value || 0);
+      const maxScore = 40;
+      const finishedAt = Date.now();
+      const durationSec = Math.round((finishedAt - startedAt) / 1000);
+
+      const summary = {
+        testId: 'Listening Full Test Demo',
+        studentName,
+        score,
+        maxScore,
+        startedAt: new Date(startedAt).toISOString(),
+        finishedAt: new Date(finishedAt).toISOString(),
+        durationSec,
+        className: 'Group A',
+        detailsUrl: location.href + '#attempt=' + Math.random().toString(36).slice(2)
+      };
+
+      const out = await reportToTeacher(summary);
+      alert(out.ok ? 'Reported to teacher' : 'Report failed');
+    });
+  </script>
+</body>
+</html>
